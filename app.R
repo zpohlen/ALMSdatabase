@@ -15,23 +15,29 @@ library(splitstackshape)
 library(RColorBrewer)
 library(leaflet.extras)
 library(rgdal)
+library(rmapshaper)
 
+setwd("C:/Users/Zak/Documents/R/ALMSdatabase")
 
-#read in tab delimited TEXT and .csv files of reports, bird observations, LRRS gps boundaries
+#read in master GPS coord file for all points
+point.coords <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/R7MBMlb_ALL_ALMS_Points.csv", stringsAsFactors = FALSE)
 
-point.coords <- read.csv("T:/Landbirds/ALMS/GPS_Points/R7MBMlb_ALL_ALMS_Points.csv", stringsAsFactors = FALSE)
+#read in lookup table for species codes
+spco <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/SPCO.csv", stringsAsFactors = FALSE)
+
+#read in ALMS bird detections files
+specpoint6 <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/R7MBMlb_ALMS_distance_2016.csv", stringsAsFactors = FALSE)
+specpoint7 <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/R7MBMlb_ALMS_distance_2017.csv", stringsAsFactors = FALSE)
+specpoint8 <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/R7MBMlb_ALMS_distance_2018.csv", stringsAsFactors = FALSE)
+specpoint9 <- read.csv("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/R7MBMlb_ALMS_distance_2019.csv", stringsAsFactors = FALSE)
+specpoint <- rbind(specpoint6, specpoint7, specpoint8, specpoint9)
+
+#read in national wildlife refuge boundaries
+AK.NWR <- readOGR("C:/Users/Zak/Documents/R/ALMSdatabase/data_files/AK_refuge_small.shp")
 
 point.c <- subset(point.coords, select = c("Name", "Latitude", "Longitude"))
 
-spco <- read.csv("T:/Landbirds/ALMS/Data/ALMS/SPCO.csv", stringsAsFactors = FALSE)
-
-specpoint6 <- read.csv("T:/Landbirds/ALMS/Data/ALMS/R7MBMlb_ALMS_distance_2016.csv", stringsAsFactors = FALSE)
-specpoint7 <- read.csv("T:/Landbirds/ALMS/Data/ALMS/R7MBMlb_ALMS_distance_2017.csv", stringsAsFactors = FALSE)
-specpoint8 <- read.csv("T:/Landbirds/ALMS/Data/ALMS/R7MBMlb_ALMS_distance_2018.csv", stringsAsFactors = FALSE)
-specpoint9 <- read.csv("T:/Landbirds/ALMS/Data/ALMS/R7MBMlb_ALMS_distance_2019.csv", stringsAsFactors = FALSE)
-specpoint <- rbind(specpoint6, specpoint7, specpoint8, specpoint9)
-
-
+#create "objectable" block names and unique point names
 specpoint$block <- paste("B",specpoint$Block_No, sep = "_")
 specpoint$block_point <- paste(specpoint$Block_No, specpoint$Point, sep = "_")
 
@@ -41,9 +47,13 @@ specpoint <- select(specpoint, block, block_point, Date, Year, Point, Hr, Min, F
 specpoint.agg <- aggregate(No_gt_1 ~ block + block_point + Date + Year + Point + Hr + Min + FMLast + Species, specpoint, sum)
 specpoint.agg$block <- as.factor(specpoint.agg$block)
 
+#merge detections file with gps coordinates file
 gps.obs <- merge(specpoint.agg, point.c, by.x = "block_point", by.y = "Name") 
 
+#merge species common_names to banding codes
 gps.obs <- merge(gps.obs, spco, by.x = "Species", by.y = "code") 
+
+#create dunny species count field
 gps.obs$species_count <- 1
 
 
@@ -56,8 +66,6 @@ BCC <-  c("Red-faced Cormorant", "Rock Sandpiper", "Red-legged Kittiwake", "Aleu
           "Yellow-billed Loon", "Peregrine Falcon", "Solitary Sandpiper", "Lesser Yellowlegs", "Whimbrel",
           "Bristle-thighed Curlew", "Hudsonian Godwit", "Bar-tailed Godwit", "Marbled Godwit", "Red Knot", 
           "Dunlin", "Short-billed Dowitcher", "Buff-breasted Sandpiper", "Smith's Longspur")
-DOD <-  c("Bald Eagle", "Northern Goshawk", "Golden Eagle", "Buff-breasted Sandpiper", "Olive-sided Flycatcher", 
-          "Rusty Blackbird", "Laysan Albatross", "Black-footed Albatross", "Pacific Golden-Plover")
 FWSE <- c("Short-tailed Albatross")
 FWST <- c("Spectacled Eider", "Steller's Eider")
 ADFG <- c( "McKay's Bunting", "Gray-headed Chickadee", "Brant", "Spectacled Eider", "King Eider", 
@@ -89,14 +97,29 @@ ui <- dashboardPage(
   
   dashboardHeader(
     titleWidth = 300,
-    title = ""
-    ),  
+    title = "",
+    tags$li(a(href = "https://www.usgs.gov/centers/asc",
+              img(src = "usgs.jpg",
+                  title = "USGS - Alaska Science Center",
+                  height = "40px"),
+              style = "padding-top:5px; padding-bottom:5px;"),
+            class = "dropdown"),
+    tags$li(a(href = 'https://www.fws.gov/alaska/mbsp/mbm/index.htm',
+              img(src = "R7MBMLB_usfwslogo.png",
+                  title = "USFWS Migratory Bird Management - Alaska",
+                  height = "40px"),
+              style = "padding-top:5px; padding-bottom:5px;"),
+            class = "dropdown")),  
   
 ###create sidebar################################################################################################################################################################       
 #blue sidebar with options to filter data
   
   dashboardSidebar(
     width = 300,
+    tags$style(type = "text/css",
+                           "label { font-size: 16px; }"),
+    img(src = "alms_emblem.jpg", 
+        height = "278px"),
 
     
     
@@ -104,7 +127,7 @@ ui <- dashboardPage(
     #dropdown checkbox using shinyWidget
     pickerInput(
       inputId = "sitesInput",
-      label = h3("ALMS Blocks"), 
+      label = h3("ALMS Block"), 
       choices = list( "Arctic NWR" = ANWR,
                       "Kanuti NWR" = KANWR,
                       "Innoko NWR" = INWR,
@@ -218,16 +241,16 @@ ui <- dashboardPage(
                                  right = 20, 
                                  bottom = "auto",
                                  width = 225, 
-                                 height = 280,
+                                 height = 300,
                                 
                                  #add plot to sidebar for frequency of observations by year
                                  div(style=" padding-top:4px;",
                                  plotOutput(outputId = "speciesScatter", 
                                             height = 220, 
                                             width = 220)),
-                                 
+
                                  #add additional checkbox to aggregate observations       
-                                 div(style="padding: 14px; padding-top:5px;",
+                                 div(style="padding-left: 1px;",
                                      awesomeCheckbox(inputId = "agg.obs",
                                                      label = "Aggregate Observations",
                                                      value = FALSE))
@@ -240,7 +263,6 @@ server <- function(input,output,session){
   concernlist <- reactive({
     sp.list = c()
     if(input$conservInput == 1){sp.list = BCC}
-    if(input$conservInput == 2){sp.list = DOD}
     if(input$conservInput == 3){sp.list = ADFG}
     if(input$conservInput == 4){sp.list = PIF}
     if(input$conservInput == 5){sp.list = FWSE}
@@ -386,7 +408,13 @@ freq.graph <- reactive (as.data.frame(cbind(year,freq())))
     leaflet() %>%
       setView(lat =  64.204125,
               lng = -155.872777,
-              zoom = 3) %>%
+              zoom = 5) %>%
+      addPolygons(data = AK.NWR,
+                  color = "#001a33",
+                  weight = 2,
+                  opacity = 1,
+                  fillOpacity = .2,
+                  fill = "green") %>%
 
       addProviderTiles("Esri.WorldImagery",
                        options = providerTileOptions(minZoom = 4)) %>%
@@ -465,8 +493,7 @@ output$speciesScatter <- renderPlot({
         labs(x = "Year", y = "Proportion of Points Detected") +
         xlim(2016,2019) + 
         ylim(0,1)}   })
-  
-  
+
 
 }
 #compile ui and server
