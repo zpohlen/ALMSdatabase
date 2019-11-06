@@ -458,13 +458,16 @@ Brewer's Sparrow,BRSP
 Lark Sparrow,
 American Tree Sparrow,ATSP
 Fox Sparrow,FOSP
+Dark-eyed Junco,ORJU
+Dark-eyed Junco,SCJU
 Dark-eyed Junco,DEJU
+White-crowned Sparrow,GWCS
 White-crowned Sparrow,WCSP
 Golden-crowned Sparrow,GCSP
 Harris's Sparrow,
 White-throated Sparrow,
 Vesper Sparrow,
-Savannah Sparrow,SASP
+Savannah Sparrow,SAVS
 Song Sparrow,SOSP
 Lincoln's Sparrow,LISP
 Swamp Sparrow,SWSP
@@ -499,6 +502,8 @@ Chestnut-sided Warbler,
 Blackpoll Warbler,BLPW
 Black-throated Blue Warbler,
 Palm Warbler,PAWA
+Yellow-rumped Warbler,MYWA
+Yellow-rumped Warbler,AUWA
 Yellow-rumped Warbler,YRWA
 Yellow-throated Warbler,
 Prairie Warbler,
